@@ -49,6 +49,22 @@ export function deleteSessionById(id: string): void {
   saveState(state)
 }
 
+export function getSessionById(id: string): Session | undefined {
+  const { sessions } = loadState()
+  return sessions.find(s => s.id === id)
+}
+
+export function updateSessionById(id: string, patch: Partial<Session>): boolean {
+  const state = loadState()
+  const idx = state.sessions.findIndex(s => s.id === id)
+  if (idx === -1) return false
+  const current = state.sessions[idx]
+  const updated = { ...current, ...patch, id: current.id, actionId: current.actionId, createdAt: current.createdAt }
+  state.sessions[idx] = updated as Session
+  saveState(state)
+  return true
+}
+
 export function clearAll(): void {
   saveState(defaultState)
 }
