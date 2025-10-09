@@ -26,10 +26,12 @@ export default defineConfig({
   ],
   server: {
     host: true,
-    allowedHosts: ['.trycloudflare.com'],
+    // Allow any host header during dev (needed for ephemeral tunnels)
+    allowedHosts: true,
   },
   preview: {
     host: true,
-    allowedHosts: ['.trycloudflare.com'],
+    // Allow any host header during preview (needed for ephemeral tunnels)
+    allowedHosts: true,
   },
 })
