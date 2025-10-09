@@ -4,6 +4,8 @@ import { ActionOne } from './features/action1/ActionOne'
 import { ActionTwo } from './features/action2/ActionTwo'
 import { ActionThree } from './features/action3/ActionThree'
 import { History } from './features/history/History'
+import { ActionFour } from './features/action4/ActionFour'
+import { Chat } from './features/chat/Chat'
 
 function App() {
   return (
@@ -15,6 +17,8 @@ function App() {
           <Route path="/action-2" element={<ActionTwo />} />
           <Route path="/action-3" element={<ActionThree />} />
           <Route path="/history" element={<History />} />
+          <Route path="/chat" element={<Chat />} />
+          <Route path="/action-4" element={<ActionFour />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Layout>

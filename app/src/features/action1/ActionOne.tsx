@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { addSession, generateId, getSessions } from '../../lib/storage'
+import { addSession, generateId, getSessions, deleteSessionById } from '../../lib/storage'
 import type { SessionAction1 } from '../../lib/types'
 import { Link } from 'react-router-dom'
 
@@ -29,6 +29,11 @@ export function ActionOne() {
   }
 
   const recent = getSessions('action-1').slice(0, 3)
+  function remove(id: string) {
+    if (!confirm('이 기록을 삭제할까요?')) return
+    deleteSessionById(id)
+    // no state list here; rely on History for full refresh
+  }
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6">
@@ -68,9 +73,12 @@ export function ActionOne() {
           <h2 id="recent-a1" className="text-lg font-semibold">최근 기록</h2>
           <ul className="divide-y divide-zinc-200 dark:divide-zinc-800 rounded border border-zinc-200 dark:border-zinc-800 overflow-hidden">
             {recent.map(s => (
-              <li key={s.id} className="p-3">
-                <div className="text-sm font-medium">{s.topic}</div>
-                <div className="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-2">{s.coreQuestion} — {s.notes}</div>
+              <li key={s.id} className="p-3 flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-sm font-medium">{s.topic}</div>
+                  <div className="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-2">{s.coreQuestion} — {s.notes}</div>
+                </div>
+                <button onClick={() => remove(s.id)} className="rounded border border-red-300 text-red-700 px-2 py-1 text-xs focus-ring">삭제</button>
               </li>
             ))}
           </ul>

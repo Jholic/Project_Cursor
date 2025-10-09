@@ -1,4 +1,4 @@
-export type ActionId = 'action-1' | 'action-2' | 'action-3'
+export type ActionId = 'action-1' | 'action-2' | 'action-3' | 'action-4'
 
 export interface SessionBase {
   id: string
@@ -25,7 +25,14 @@ export interface SessionAction3 extends SessionBase {
   reframes: string[]
 }
 
-export type Session = SessionAction1 | SessionAction2 | SessionAction3
+export type Session = SessionAction1 | SessionAction2 | SessionAction3 | SessionAction4
+
+export interface SessionAction4 extends SessionBase {
+  actionId: 'action-4'
+  date: string // YYYY-MM-DD
+  weightKg: number
+  note?: string
+}
 
 export interface AppState {
   sessions: Session[]

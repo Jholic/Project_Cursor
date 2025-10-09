@@ -37,9 +37,16 @@ export function getSessions(): Session[]
 export function getSessions(actionId: 'action-1'): Extract<Session, { actionId: 'action-1' }> []
 export function getSessions(actionId: 'action-2'): Extract<Session, { actionId: 'action-2' }> []
 export function getSessions(actionId: 'action-3'): Extract<Session, { actionId: 'action-3' }> []
+export function getSessions(actionId: 'action-4'): Extract<Session, { actionId: 'action-4' }> []
 export function getSessions(actionId?: ActionId): any {
   const { sessions } = loadState()
   return actionId ? sessions.filter(s => s.actionId === actionId) : sessions
+}
+
+export function deleteSessionById(id: string): void {
+  const state = loadState()
+  state.sessions = state.sessions.filter(s => s.id !== id)
+  saveState(state)
 }
 
 export function clearAll(): void {

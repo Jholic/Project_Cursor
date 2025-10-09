@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { exportState, importState, getSessions, clearAll } from '../../lib/storage'
+import { exportState, importState, getSessions, clearAll, deleteSessionById } from '../../lib/storage'
 import type { ActionId, Session } from '../../lib/types'
 
 export function History() {
@@ -11,6 +11,14 @@ export function History() {
     const all = getSessions()
     return filter === 'all' ? all : all.filter(s => s.actionId === filter)
   }, [filter])
+
+  function remove(id: string) {
+    if (!confirm('이 기록을 삭제할까요?')) return
+    deleteSessionById(id)
+    setMessage('삭제되었습니다.')
+    // trigger rerender by changing filter state (toggle twice to keep selection)
+    setFilter(prev => prev)
+  }
 
   function handleExport() {
     const data = exportState()
@@ -77,12 +85,15 @@ export function History() {
         <h2 id="history-list" className="text-lg font-semibold">세션 목록 ({sessions.length})</h2>
         <ul className="divide-y divide-zinc-200 dark:divide-zinc-800 rounded border border-zinc-200 dark:border-zinc-800 overflow-hidden">
           {sessions.map((s) => (
-            <li key={s.id} className="p-3 grid grid-cols-1 sm:grid-cols-[160px_1fr] gap-2">
+            <li key={s.id} className="p-3 grid grid-cols-1 sm:grid-cols-[160px_1fr_auto] gap-2">
               <div className="text-xs text-zinc-600 dark:text-zinc-400">
                 <div>{new Date(s.createdAt).toLocaleString()}</div>
                 <div>{s.actionId}</div>
               </div>
               <SessionPreview session={s} />
+              <div className="flex items-start justify-end">
+                <button onClick={() => remove(s.id)} className="rounded border border-red-300 text-red-700 px-2 py-1 text-xs focus-ring">삭제</button>
+              </div>
             </li>
           ))}
         </ul>

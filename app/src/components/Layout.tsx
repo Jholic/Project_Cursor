@@ -1,17 +1,22 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { NavLink, Link } from 'react-router-dom'
-import { History as HistoryIcon, NotebookPen, Scale, Lightbulb } from 'lucide-react'
+import { History as HistoryIcon, NotebookPen, Scale, Lightbulb, MessageSquare } from 'lucide-react'
 
 type LayoutProps = { children: ReactNode }
 
 export function Layout({ children }: LayoutProps) {
-  const [isDark, setIsDark] = useState<boolean>(() =>
-    typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-  )
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    const saved = localStorage.getItem('theme')
+    if (saved === 'dark') return true
+    if (saved === 'light') return false
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+  })
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark)
+    try { localStorage.setItem('theme', isDark ? 'dark' : 'light') } catch {}
   }, [isDark])
 
   return (
@@ -33,6 +38,9 @@ export function Layout({ children }: LayoutProps) {
           <NavItem to="/action-3" icon={<Lightbulb size={18} />} label="Action 3: 소셜 벤처" />
           <div className="mt-4 border-t border-zinc-200 dark:border-zinc-800 pt-2" />
           <NavItem to="/history" icon={<HistoryIcon size={18} />} label="히스토리" />
+          <div className="mt-4" />
+          <NavItem to="/action-4" icon={<span className="text-xs font-mono">WT</span>} label="Action 4: 체중 기록" />
+          <NavItem to="/chat" icon={<MessageSquare size={18} />} label="챗봇" />
         </nav>
       </aside>
       <main id="main" className="min-h-dvh bg-zinc-50 dark:bg-zinc-950">
