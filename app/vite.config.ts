@@ -24,4 +24,12 @@ export default defineConfig({
       }
     })
   ],
+  server: {
+    host: true,
+    allowedHosts: ['.trycloudflare.com'],
+  },
+  preview: {
+    host: true,
+    allowedHosts: ['.trycloudflare.com'],
+  },
 })
