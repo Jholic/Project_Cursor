@@ -7,10 +7,12 @@ import { History } from './features/history/History'
 import { ActionFour } from './features/action4/ActionFour'
 import { Chat } from './features/chat/Chat'
 import { ChatWithContext } from './features/chat/ChatWithContext'
+import { SWPrompt } from './components/SWPrompt'
 
 function App() {
   return (
     <BrowserRouter>
+      <SWPrompt />
       <Layout>
         <Routes>
           <Route path="/" element={<ActionOne />} />
