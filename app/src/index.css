@@ -1,0 +1,43 @@
+/* Tailwind CSS v4 */
+@import "tailwindcss";
+
+/* Global base styles */
+html:focus-within {
+  scroll-behavior: smooth;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/* Visually hidden utility for a11y (in addition to Tailwind's sr-only) */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Focus ring that meets WCAG AA */
+.focus-ring:focus {
+  outline: 3px solid rgb(59 130 246);
+  outline-offset: 2px;
+}
+
+/* Typography baseline */
+body {
+  @apply bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100;
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+/* Prose-like defaults for content */
+.prose-basic h1 { @apply text-2xl font-bold tracking-tight; }
+.prose-basic h2 { @apply text-xl font-semibold; }
+.prose-basic p { @apply leading-7; }
