@@ -190,8 +190,15 @@ export function ChatCapture({ action, apiKey, model, onSave }: ChatCaptureProps)
       </div>
 
       {step === 'ask' && started && (
-        <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} className="rounded border px-3 py-2 focus-ring" placeholder="메시지를 입력하세요"/>
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto] items-end">
+          <textarea
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onInput={e => { const el = e.currentTarget; el.style.height = '0px'; el.style.height = Math.min(200, el.scrollHeight) + 'px'; }}
+            onKeyDown={e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+            placeholder="메시지를 입력하세요" rows={1}
+            className="rounded border px-3 py-2 focus-ring resize-none overflow-hidden max-h-[200px]"
+          />
           <button onClick={send} disabled={busy} className="rounded bg-blue-600 disabled:opacity-50 text-white px-4 py-2 focus-ring">보내기</button>
         </div>
       )}
