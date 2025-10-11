@@ -33,6 +33,7 @@ export function ChatCapture({ action, apiKey, model, onSave }: ChatCaptureProps)
   const [step, setStep] = useState<Step>('ask')
   const [jsonText, setJsonText] = useState('')
   const [started, setStarted] = useState(false)
+  const [errors, setErrors] = useState<string[]>([])
   const scroller = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => { scroller.current?.scrollTo({ top: scroller.current.scrollHeight }) }, [messages])
@@ -90,6 +91,61 @@ export function ChatCapture({ action, apiKey, model, onSave }: ChatCaptureProps)
     } finally { setBusy(false) }
   }
 
+  function parseJsonSafe(text: string): { data: any | null; error: string | null } {
+    try { return { data: JSON.parse(text), error: null } } catch (e: any) { return { data: null, error: e?.message || 'JSON 파싱 실패' } }
+  }
+
+  function validate(action: ActionType, data: any): string[] {
+    const issues: string[] = []
+    if (action === 'action-1') {
+      if (!data || typeof data !== 'object') { issues.push('데이터 형식이 올바르지 않습니다.'); return issues }
+      if (!data.topic || String(data.topic).trim() === '') issues.push('주제(topic)를 입력하세요.')
+      if (!data.coreQuestion || String(data.coreQuestion).trim() === '') issues.push('핵심 질문(coreQuestion)을 입력하세요.')
+      if (data.notes != null && typeof data.notes !== 'string') issues.push('메모(notes)는 문자열이어야 합니다.')
+    } else if (action === 'action-2') {
+      if (!data || typeof data !== 'object') { issues.push('데이터 형식이 올바르지 않습니다.'); return issues }
+      if (!data.observation || String(data.observation).trim() === '') issues.push('관찰/기록(observation)을 입력하세요.')
+      if (!data.analysis || String(data.analysis).trim() === '') issues.push('패턴 분석(analysis)을 입력하세요.')
+    } else if (action === 'action-3') {
+      if (!data || typeof data !== 'object') { issues.push('데이터 형식이 올바르지 않습니다.'); return issues }
+      if (!data.problem || String(data.problem).trim() === '') issues.push('문제(problem)를 입력하세요.')
+      const list = Array.isArray(data.reframes) ? data.reframes : []
+      if (list.length < 3) issues.push('재정의(reframes)는 최소 3개 필요합니다.')
+      if (!list.every((x: any) => typeof x === 'string' && x.trim().length > 0)) issues.push('reframes 항목은 비어있지 않은 문자열이어야 합니다.')
+    }
+    return issues
+  }
+
+  useEffect(() => {
+    if (!jsonText) { setErrors([]); return }
+    const { data, error } = parseJsonSafe(jsonText)
+    if (error) { setErrors([`JSON 파싱 오류: ${error}`]); return }
+    setErrors(validate(action, data))
+  }, [jsonText, action])
+
+  async function autoFix() {
+    if (!apiKey) { alert('API Key 필요'); return }
+    const { data, error } = parseJsonSafe(jsonText)
+    const hint = error ? `현재 JSON 파싱 오류: ${error}` : `현재 JSON: ${JSON.stringify(data)}`
+    const constraints = action === 'action-1'
+      ? '필수: topic, coreQuestion. notes는 선택. 문자열만.'
+      : action === 'action-2'
+      ? '필수: observation, analysis. 문자열만.'
+      : '필수: problem, reframes 배열(최소 3개, 문자열).'
+    const prompt = `다음 액션(${action})의 스키마에 맞도록 누락/형식을 보정한 순수 JSON만 출력하세요. 설명 금지, 마크다운 금지, JSON만.\n제약: ${constraints}\n${hint}`
+    try {
+      const genAI = new GoogleGenerativeAI(apiKey)
+      const m = genAI.getGenerativeModel({ model })
+      const res = await m.generateContent(prompt)
+      const out = res.response.text()
+      const match = out.match(/\{[\s\S]*\}/)
+      if (match) setJsonText(match[0])
+      else alert('보정된 JSON을 찾을 수 없습니다. 다시 시도하세요.')
+    } catch (e: any) {
+      alert(e?.message || '자동 보정 중 오류')
+    }
+  }
+
   function confirmAndSave() {
     try {
       const parsed = JSON.parse(jsonText)
@@ -126,13 +182,27 @@ export function ChatCapture({ action, apiKey, model, onSave }: ChatCaptureProps)
         <div className="space-y-2">
           <label className="text-sm font-medium">생성된 JSON</label>
           <textarea className="w-full rounded border p-2 text-sm font-mono min-h-[160px]" value={jsonText} onChange={e => setJsonText(e.target.value)} />
-          {/* 미리보기 */}
-          <div className="rounded border p-3 bg-white dark:bg-zinc-900">
+          {/* 유효성 */}
+          {errors.length > 0 ? (
+            <div className="rounded border border-amber-300 bg-amber-50 dark:bg-amber-900/20 p-3 text-sm text-amber-800 dark:text-amber-300">
+              <div className="font-medium mb-1">유효성 검사</div>
+              <ul className="list-disc pl-5 space-y-1">
+                {errors.map((er, i) => (<li key={i}>{er}</li>))}
+              </ul>
+              <div className="mt-2">
+                <button onClick={autoFix} className="rounded border px-3 py-2 text-sm focus-ring">자동 보정</button>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded border border-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 p-3 text-sm text-emerald-800 dark:text-emerald-300">유효성 검사 통과</div>
+          )}
+          {/* 미리보기 카드 */}
+          <div className="rounded-xl border shadow-sm bg-white dark:bg-zinc-900 p-4">
             <Preview action={action} jsonText={jsonText} />
           </div>
           <div className="flex gap-2">
             <button onClick={() => setStep('ask')} className="rounded border px-3 py-2 text-sm focus-ring">대화 계속</button>
-            <button onClick={confirmAndSave} className="rounded bg-green-600 text-white px-3 py-2 text-sm focus-ring">저장</button>
+            <button onClick={confirmAndSave} disabled={errors.length>0} className="rounded bg-green-600 disabled:opacity-50 text-white px-3 py-2 text-sm focus-ring">저장</button>
           </div>
         </div>
       )}
