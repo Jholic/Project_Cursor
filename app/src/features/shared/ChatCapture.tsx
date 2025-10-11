@@ -34,6 +34,8 @@ export function ChatCapture({ action, apiKey, model, onSave }: ChatCaptureProps)
   const [jsonText, setJsonText] = useState('')
   const [started, setStarted] = useState(false)
   const [errors, setErrors] = useState<string[]>([])
+  const [autoSave, setAutoSave] = useState(false)
+  const [hasAutoSaved, setHasAutoSaved] = useState(false)
   const scroller = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => { scroller.current?.scrollTo({ top: scroller.current.scrollHeight }) }, [messages])
@@ -123,6 +125,14 @@ export function ChatCapture({ action, apiKey, model, onSave }: ChatCaptureProps)
     setErrors(validate(action, data))
   }, [jsonText, action])
 
+  // Auto-save when valid if enabled
+  useEffect(() => {
+    if (step === 'review' && autoSave && errors.length === 0 && !hasAutoSaved && jsonText.trim()) {
+      setHasAutoSaved(true)
+      confirmAndSave()
+    }
+  }, [step, autoSave, errors, hasAutoSaved, jsonText])
+
   async function autoFix() {
     if (!apiKey) { alert('API Key 필요'); return }
     const { data, error } = parseJsonSafe(jsonText)
@@ -169,6 +179,14 @@ export function ChatCapture({ action, apiKey, model, onSave }: ChatCaptureProps)
             <div className={`inline-block rounded px-3 py-2 my-1 text-left max-w-full break-words ${m.role === 'user' ? 'bg-blue-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800'}`}>{renderRich(m.text)}</div>
           </div>
         ))}
+        {step === 'review' && (
+          <div className="text-left mt-2">
+            <div className="inline-flex items-center gap-2 rounded px-3 py-2 my-1 text-left max-w-full break-words bg-zinc-200 dark:bg-zinc-800">
+              <span className="text-sm">정리가 완료되었어요. 저장해 볼까요?</span>
+              <button onClick={confirmAndSave} disabled={errors.length>0} className="rounded bg-green-600 disabled:opacity-50 text-white px-2 py-1 text-xs focus-ring">저장</button>
+            </div>
+          </div>
+        )}
       </div>
 
       {step === 'ask' && started && (
@@ -200,9 +218,13 @@ export function ChatCapture({ action, apiKey, model, onSave }: ChatCaptureProps)
           <div className="rounded-xl border shadow-sm bg-white dark:bg-zinc-900 p-4">
             <Preview action={action} jsonText={jsonText} />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-3 items-center">
             <button onClick={() => setStep('ask')} className="rounded border px-3 py-2 text-sm focus-ring">대화 계속</button>
             <button onClick={confirmAndSave} disabled={errors.length>0} className="rounded bg-green-600 disabled:opacity-50 text-white px-3 py-2 text-sm focus-ring">저장</button>
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={autoSave} onChange={e => { setAutoSave(e.target.checked); if (!e.target.checked) setHasAutoSaved(false) }} />
+              자동 저장(검증 통과 시)
+            </label>
           </div>
         </div>
       )}
