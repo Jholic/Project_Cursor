@@ -21,6 +21,10 @@ export function Meditation() {
   const [isNative, setIsNative] = useState<boolean>(false)
   const timeoutsRef = useRef<Record<string, any>>({})
   const STORAGE = 'meditation_schedules_v1'
+  const [editingId, setEditingId] = useState<string>('')
+  const [editRec, setEditRec] = useState<Recurrence>('once')
+  const [editTime, setEditTime] = useState<string>('06:30')
+  const [editDate, setEditDate] = useState<string>('')
 
   async function save(items: ScheduledItem[]) {
     try {
@@ -181,6 +185,63 @@ export function Meditation() {
     setItems(prev => { const next = prev.filter(x => x.id !== id); save(next); return next })
   }
 
+  function formatHHmm(d: Date) {
+    const hh = String(d.getHours()).padStart(2,'0')
+    const mm = String(d.getMinutes()).padStart(2,'0')
+    return `${hh}:${mm}`
+  }
+
+  function startEdit(it: ScheduledItem) {
+    setEditingId(it.id)
+    setEditRec(it.recurrence)
+    const d = new Date(it.when)
+    setEditTime(formatHHmm(d))
+    setEditDate(d.toISOString().slice(0,10))
+  }
+
+  function stopEdit() {
+    setEditingId('')
+  }
+
+  function computeNextWhen(rec: Recurrence, timeStr: string, dateStr: string): Date | null {
+    const [hh, mm] = timeStr.split(':').map(Number)
+    const now = new Date()
+    if (rec === 'date') {
+      if (!dateStr) return null
+      const [y,m,d] = dateStr.split('-').map(Number)
+      return new Date(y, (m-1), d, hh, mm, 0, 0)
+    }
+    const at = new Date()
+    at.setHours(hh, mm, 0, 0)
+    if (rec === 'once' && at.getTime() <= now.getTime()) at.setDate(at.getDate() + 1)
+    if (rec === 'daily' && at.getTime() <= now.getTime()) at.setDate(at.getDate() + 1)
+    return at
+  }
+
+  async function applyEdit(id: string) {
+    const it = items.find(x => x.id === id)
+    if (!it) return
+    const at = computeNextWhen(editRec, editTime, editDate)
+    if (!at) { alert('유효한 시간/날짜를 입력하세요.'); return }
+    // cancel underlying schedule but keep item
+    try {
+      if (isNative && it.nativeId != null) {
+        const LN = (window as any).Capacitor?.Plugins?.LocalNotifications
+        await LN?.cancel?.({ notifications: [{ id: it.nativeId }] })
+      } else {
+        const h = timeoutsRef.current[id]
+        if (h) { clearTimeout(h); delete timeoutsRef.current[id] }
+      }
+    } catch {}
+    // update item
+    const updated: ScheduledItem = { ...it, recurrence: editRec, when: at.toISOString(), nativeId: undefined }
+    setItems(prev => { const next = prev.map(x => x.id===id ? updated : x); save(next); return next })
+    // reschedule
+    if (isNative) await scheduleNative(updated, at)
+    else scheduleWeb(updated)
+    setEditingId('')
+  }
+
   function onFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]
     if (!f) return
@@ -245,12 +306,43 @@ export function Meditation() {
         ) : (
           <ul className="divide-y rounded border">
             {items.map(it => (
-              <li key={it.id} className="p-2 text-sm flex items-center justify-between">
-                <div>
-                  <div className="font-medium">{it.title}</div>
-                  <div className="text-xs text-zinc-600 dark:text-zinc-400">{new Date(it.when).toLocaleString()} • {it.recurrence}</div>
+              <li key={it.id} className="p-2 text-sm space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-medium">{it.title}</div>
+                    <div className="text-xs text-zinc-600 dark:text-zinc-400">{new Date(it.when).toLocaleString()} • {it.recurrence}</div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={()=>startEdit(it)} className="rounded border px-2 py-1 text-xs focus-ring">수정</button>
+                    <button onClick={()=>cancel(it.id)} className="rounded border px-2 py-1 text-xs focus-ring">삭제</button>
+                  </div>
                 </div>
-                <button onClick={()=>cancel(it.id)} className="rounded border px-2 py-1 text-xs focus-ring">취소</button>
+                {editingId===it.id && (
+                  <div className="grid sm:grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-xs">시간</label>
+                      <input type="time" value={editTime} onChange={e=>setEditTime(e.target.value)} className="mt-1 w-full rounded border px-2 py-1 focus-ring" />
+                    </div>
+                    <div>
+                      <label className="block text-xs">반복</label>
+                      <select value={editRec} onChange={e=>setEditRec(e.target.value as any)} className="mt-1 w-full rounded border px-2 py-1 focus-ring">
+                        <option value="once">1회</option>
+                        <option value="daily">매일</option>
+                        <option value="date">지정 날짜</option>
+                      </select>
+                    </div>
+                    {editRec==='date' && (
+                      <div>
+                        <label className="block text-xs">날짜</label>
+                        <input type="date" value={editDate} onChange={e=>setEditDate(e.target.value)} className="mt-1 w-full rounded border px-2 py-1 focus-ring" />
+                      </div>
+                    )}
+                    <div className="sm:col-span-3 flex gap-2">
+                      <button onClick={()=>applyEdit(it.id)} className="rounded bg-blue-600 text-white px-3 py-1 text-xs focus-ring">변경 적용</button>
+                      <button onClick={stopEdit} className="rounded border px-3 py-1 text-xs focus-ring">취소</button>
+                    </div>
+                  </div>
+                )}
               </li>
             ))}
           </ul>
