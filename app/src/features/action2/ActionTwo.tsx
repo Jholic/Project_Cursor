@@ -39,6 +39,7 @@ export function ActionTwo() {
             setTimeout(() => setSaved(null), 2000)
           }}
         />
+        {saved && <div role="status" className="text-green-600 text-sm">{saved}</div>}
       </section>
 
       {recent.length > 0 && (
