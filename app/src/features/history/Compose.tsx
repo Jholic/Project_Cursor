@@ -24,6 +24,22 @@ export function Compose() {
     setContent(prev => prev + (prev ? '\n\n' : '') + refs)
   }
 
+  async function postToDevTo() {
+    try {
+      const key = localStorage.getItem('DEVTO_API_KEY')
+      if (!key) { alert('먼저 API Key를 설정하세요. 로컬스토리지 DEVTO_API_KEY.'); return }
+      const payload = { article: { title, published: false, body_markdown: content, tags: ['writing','notes'] } }
+      const res = await fetch('https://dev.to/api/articles', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'api-key': key }, body: JSON.stringify(payload)
+      })
+      if (!res.ok) throw new Error(await res.text())
+      const data = await res.json()
+      alert('dev.to에 초안 업로드 완료: ' + (data.url || '성공'))
+    } catch (e:any) {
+      alert(e?.message || '업로드 실패')
+    }
+  }
+
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6">
       <header className="space-y-1">
@@ -56,10 +72,11 @@ export function Compose() {
         <h2 className="text-lg font-semibold">블로그 초안</h2>
         <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="제목" className="w-full rounded border px-3 py-2 focus-ring" />
         <textarea value={content} onChange={e=>setContent(e.target.value)} placeholder="마크다운 본문" className="w-full min-h-[240px] rounded border px-3 py-2 focus-ring font-mono" />
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button className="rounded bg-blue-600 text-white px-3 py-2 focus-ring" onClick={()=>navigator.clipboard.writeText(content)}>본문 복사</button>
           <button className="rounded border px-3 py-2 focus-ring" onClick={()=>window.open('https://dev.to/new','_blank')}>dev.to에 새 글 열기</button>
-          {/* TODO: dev.to API 연동(작성자 키 필요) */}
+          <button className="rounded border px-3 py-2 focus-ring" onClick={postToDevTo}>dev.to에 초안 업로드(API 키 필요)</button>
+          <label className="text-xs text-zinc-600 dark:text-zinc-400">브라우저 저장소 DEVTO_API_KEY에 키를 저장하세요.</label>
         </div>
       </section>
 

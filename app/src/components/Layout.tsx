@@ -43,6 +43,7 @@ export function Layout({ children }: LayoutProps) {
           <NavItem to="/action-4" icon={<span className="text-xs font-mono">WT</span>} label="체중 기록" />
           <NavItem to="/chat" icon={<MessageSquare size={18} />} label="챗봇" />
           <NavItem to="/meditation" icon={<Bell size={18} />} label="명상" />
+          <NavItem to="/profile" icon={<span className="text-xs font-mono">PR</span>} label="프로필" />
         </nav>
       </aside>
       <main id="main" className="min-h-dvh bg-zinc-50 dark:bg-zinc-950">

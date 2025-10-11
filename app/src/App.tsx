@@ -10,6 +10,7 @@ import { Chat } from './features/chat/Chat'
 import { SWPrompt } from './components/SWPrompt'
 import { Compose } from './features/history/Compose'
 import { Meditation } from './features/meditation/Meditation'
+import { Profile } from './features/profile/Profile'
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
           <Route path="/history" element={<History />} />
           <Route path="/compose" element={<Compose />} />
           <Route path="/meditation" element={<Meditation />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/action-4" element={<ActionFour />} />
           <Route path="*" element={<NotFound />} />
