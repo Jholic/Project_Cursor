@@ -93,6 +93,52 @@ export function ChatCapture({ action, apiKey, model, onSave }: ChatCaptureProps)
     } finally { setBusy(false) }
   }
 
+  function extractJsonFromText(text: string): string | null {
+    // Try fenced code block first
+    const fence = text.match(/```json\s*([\s\S]*?)```/i)
+    if (fence && fence[1]) {
+      const candidate = fence[1].trim()
+      try { JSON.parse(candidate); return candidate } catch {}
+    }
+    // Fallback: slice between first { and last }
+    const first = text.indexOf('{')
+    const last = text.lastIndexOf('}')
+    if (first !== -1 && last !== -1 && last > first) {
+      const candidate = text.slice(first, last + 1)
+      try { JSON.parse(candidate); return candidate } catch {}
+    }
+    return null
+  }
+
+  async function finalize() {
+    if (!apiKey) { alert('API Key 필요'); return }
+    setBusy(true)
+    try {
+      const genAI = new GoogleGenerativeAI(apiKey)
+      const m = genAI.getGenerativeModel({ model })
+      const history = messages
+        .map(m => `${m.role === 'user' ? '사용자' : '모델'}: ${m.text}`)
+        .join('\n')
+      const constraints = action === 'action-1'
+        ? 'keys: topic, coreQuestion, notes (notes optional). Output pure JSON only.'
+        : action === 'action-2'
+        ? 'keys: observation, analysis. Output pure JSON only.'
+        : 'keys: problem, reframes (array, >=3). Output pure JSON only.'
+      const prompt = `${systemPrompt(action)}\n\n대화 기록:\n${history}\n\n요구사항: ${constraints}`
+      const res = await m.generateContent(prompt)
+      const out = res.response.text()
+      const extracted = extractJsonFromText(out)
+      if (extracted) {
+        setJsonText(extracted)
+        setStep('review')
+      } else {
+        setMessages(m => [...m, { role: 'model', text: 'JSON을 추출하지 못했습니다. "JSON만" 출력하도록 다시 시도해 주세요.' }])
+      }
+    } catch (e: any) {
+      setMessages(m => [...m, { role: 'model', text: e?.message || '오류가 발생했습니다.' }])
+    } finally { setBusy(false) }
+  }
+
   function parseJsonSafe(text: string): { data: any | null; error: string | null } {
     try { return { data: JSON.parse(text), error: null } } catch (e: any) { return { data: null, error: e?.message || 'JSON 파싱 실패' } }
   }
@@ -190,7 +236,7 @@ export function ChatCapture({ action, apiKey, model, onSave }: ChatCaptureProps)
       </div>
 
       {step === 'ask' && started && (
-        <div className="grid gap-3 sm:grid-cols-[1fr_auto] items-end">
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto] items-end">
           <textarea
             value={input}
             onChange={e => setInput(e.target.value)}
@@ -200,6 +246,7 @@ export function ChatCapture({ action, apiKey, model, onSave }: ChatCaptureProps)
             className="rounded border px-3 py-2 focus-ring resize-none overflow-hidden max-h-[200px]"
           />
           <button onClick={send} disabled={busy} className="rounded bg-blue-600 disabled:opacity-50 text-white px-4 py-2 focus-ring">보내기</button>
+          <button onClick={finalize} disabled={busy || messages.length === 0} className="rounded border px-3 py-2 text-sm focus-ring">정리하기</button>
         </div>
       )}
 
