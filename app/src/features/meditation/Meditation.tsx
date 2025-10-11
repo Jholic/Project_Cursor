@@ -6,7 +6,7 @@ function supportsNotifications() {
 
 type Recurrence = 'once' | 'daily' | 'date'
 
-type ScheduledItem = { id: string; when: string; recurrence: Recurrence; title: string }
+type ScheduledItem = { id: string; when: string; recurrence: Recurrence; title: string; nativeId?: number }
 
 function id() { return Math.random().toString(36).slice(2,10) }
 
@@ -19,6 +19,27 @@ export function Meditation() {
   const [items, setItems] = useState<ScheduledItem[]>([])
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [isNative, setIsNative] = useState<boolean>(false)
+  const timeoutsRef = useRef<Record<string, any>>({})
+  const STORAGE = 'meditation_schedules_v1'
+
+  async function save(items: ScheduledItem[]) {
+    try {
+      const Pref = (window as any).Capacitor?.Plugins?.Preferences
+      if (isNative && Pref?.set) await Pref.set({ key: STORAGE, value: JSON.stringify(items) })
+      else localStorage.setItem(STORAGE, JSON.stringify(items))
+    } catch {}
+  }
+  async function load(): Promise<ScheduledItem[]> {
+    try {
+      const Pref = (window as any).Capacitor?.Plugins?.Preferences
+      if (isNative && Pref?.get) {
+        const res = await Pref.get({ key: STORAGE })
+        return res?.value ? JSON.parse(res.value) : []
+      }
+      const raw = localStorage.getItem(STORAGE)
+      return raw ? JSON.parse(raw) : []
+    } catch { return [] }
+  }
 
   useEffect(() => {
     if (!supportsNotifications()) return
@@ -36,6 +57,32 @@ export function Meditation() {
     })
     return () => { try { sub?.remove?.() } catch {} }
   }, [isNative, fileUrl])
+
+  // Rehydrate schedules on mount
+  useEffect(() => {
+    (async () => {
+      const stored = await load()
+      if (stored.length) setItems(stored)
+      if (isNative) {
+        const LN = (window as any).Capacitor?.Plugins?.LocalNotifications
+        if (LN?.requestPermissions) await LN.requestPermissions()
+        if (LN?.getPending) {
+          try {
+            const res = await LN.getPending()
+            const pendingIds: number[] = (res?.notifications||[]).map((n:any)=>n.id)
+            for (const it of stored) {
+              if (it.recurrence === 'once' && new Date(it.when).getTime() <= Date.now()) continue
+              if (it.nativeId && pendingIds.includes(it.nativeId)) continue
+              await scheduleNative(it)
+            }
+          } catch {}
+        }
+      } else {
+        stored.forEach(it => scheduleWeb(it))
+      }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNative])
 
   function scheduleLocal() {
     if (!supportsNotifications()) { alert('브라우저 알림을 지원하지 않습니다.'); return }
@@ -60,40 +107,78 @@ export function Meditation() {
       const delay = at.getTime() - Date.now()
       const title = '명상 시간'
       const item: ScheduledItem = { id: id(), when: at.toISOString(), recurrence, title }
-      setItems(prev => [...prev, item])
+      setItems(prev => { const next = [...prev, item]; save(next); return next })
       if (isNative) {
-        // Capacitor LocalNotifications
-        const LN = (window as any).Capacitor?.Plugins?.LocalNotifications
-        if (LN?.schedule) {
-          const idNum = Math.floor(Math.random()*1e6)
-          const opts: any = {
-            notifications: [{
-              id: idNum,
-              title,
-              body: '알림을 눌러 재생됩니다.',
-              schedule: recurrence === 'daily' ? { repeats: true, every: 'day', at } : { at }
-            }]
-          }
-          LN.schedule(opts)
-        } else {
-          alert('LocalNotifications 플러그인이 없습니다. 웹 예약으로 대체합니다.')
-        }
+        scheduleNative(item, at)
       }
-      if (!isNative) {
-        setTimeout(() => {
+      if (isNative) {
+        // no-op here; scheduling handled above
+      } else {
+        const handle = setTimeout(() => {
           navigator.serviceWorker?.getRegistration().then(reg => {
             reg?.showNotification(title, { body: '알림을 눌러 재생하세요.' })
           })
           if (recurrence === 'daily') {
             const next = new Date(at)
             next.setDate(next.getDate() + 1)
+            // update stored when for daily to next
+            setItems(prev => {
+              const updated = prev.map(x => x.id === item.id ? { ...x, when: next.toISOString() } : x)
+              save(updated)
+              return updated
+            })
             scheduleOne(next)
           }
         }, delay)
+        timeoutsRef.current[item.id] = handle
       }
     }
     scheduleOne(target)
     alert(recurrence === 'daily' ? '매일 알림이 예약되었습니다. (브라우저 실행 중에만 동작)' : '알림이 예약되었습니다.')
+  }
+
+  async function scheduleNative(item: ScheduledItem, at?: Date) {
+    try {
+      const LN = (window as any).Capacitor?.Plugins?.LocalNotifications
+      if (!LN?.schedule) return
+      const idNum = item.nativeId ?? Math.floor(Math.random()*1e6)
+      const when = at ? at : new Date(item.when)
+      await LN.schedule({ notifications: [{ id: idNum, title: item.title, body: '알림을 눌러 재생됩니다.', schedule: item.recurrence === 'daily' ? { repeats: true, every: 'day', at: when } : { at: when } }] })
+      if (!item.nativeId) {
+        setItems(prev => { const updated = prev.map(x => x.id===item.id ? { ...x, nativeId: idNum } : x); save(updated); return updated })
+      }
+    } catch {}
+  }
+
+  function scheduleWeb(item: ScheduledItem) {
+    const at = new Date(item.when)
+    if (item.recurrence === 'once' && at.getTime() <= Date.now()) return
+    const delay = Math.max(0, at.getTime() - Date.now())
+    const handle = setTimeout(() => {
+      navigator.serviceWorker?.getRegistration().then(reg => {
+        reg?.showNotification(item.title, { body: '알림을 눌러 재생하세요.' })
+      })
+      if (item.recurrence === 'daily') {
+        const next = new Date(at)
+        next.setDate(next.getDate() + 1)
+        setItems(prev => { const updated = prev.map(x => x.id===item.id ? { ...x, when: next.toISOString() } : x); save(updated); return updated })
+        scheduleWeb({ ...item, when: next.toISOString() })
+      }
+    }, delay)
+    timeoutsRef.current[item.id] = handle
+  }
+
+  function cancel(id: string) {
+    const item = items.find(x => x.id === id)
+    if (!item) return
+    if (isNative && item.nativeId != null) {
+      const LN = (window as any).Capacitor?.Plugins?.LocalNotifications
+      LN?.cancel?.({ notifications: [{ id: item.nativeId }] })
+    } else {
+      const h = timeoutsRef.current[id]
+      if (h) { clearTimeout(h); delete timeoutsRef.current[id] }
+    }
+    setItems(prev => { const next = prev.filter(x => x.id !== id); save(next); return next })
   }
 
   function onFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
@@ -165,6 +250,7 @@ export function Meditation() {
                   <div className="font-medium">{it.title}</div>
                   <div className="text-xs text-zinc-600 dark:text-zinc-400">{new Date(it.when).toLocaleString()} • {it.recurrence}</div>
                 </div>
+                <button onClick={()=>cancel(it.id)} className="rounded border px-2 py-1 text-xs focus-ring">취소</button>
               </li>
             ))}
           </ul>
