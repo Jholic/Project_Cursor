@@ -6,6 +6,8 @@ import { ChatCapture } from '../shared/ChatCapture'
 
 export function ActionThree() {
   const [saved, setSaved] = useState<string | null>(null)
+  const [manualProblem, setManualProblem] = useState('')
+  const [manualReframes, setManualReframes] = useState('')
 
   const recent = getSessions('action-3').slice(0, 3)
   function remove(id: string) {
@@ -38,8 +40,38 @@ export function ActionThree() {
             setSaved('저장되었습니다.')
             setTimeout(() => setSaved(null), 2000)
           }}
+          onJsonChange={(data) => {
+            if (!data) return
+            setManualProblem(String(data.problem||''))
+            const list = Array.isArray(data.reframes) ? data.reframes : []
+            setManualReframes(list.join('\n'))
+          }}
         />
         {saved && <div role="status" className="text-green-600 text-sm">{saved}</div>}
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-lg font-semibold">직접 입력(검토/수정 후 저장)</h2>
+        <div>
+          <label htmlFor="m-prob" className="block text-sm font-medium">문제</label>
+          <input id="m-prob" value={manualProblem} onChange={e => setManualProblem(e.target.value)} className="mt-1 w-full rounded border px-3 py-2 focus-ring" />
+        </div>
+        <div>
+          <label htmlFor="m-ref" className="block text-sm font-medium">재정의(줄바꿈으로 구분)</label>
+          <textarea id="m-ref" rows={5} value={manualReframes} onChange={e => setManualReframes(e.target.value)} className="mt-1 w-full rounded border px-3 py-2 focus-ring" />
+        </div>
+        <div>
+          <button onClick={() => {
+            const list = manualReframes.split(/\n+/).map(s=>s.trim()).filter(Boolean)
+            const session: SessionAction3 = {
+              id: generateId(), actionId: 'action-3', createdAt: new Date().toISOString(),
+              problem: manualProblem, reframes: list
+            }
+            addSession(session)
+            setSaved('저장되었습니다.')
+            setTimeout(() => setSaved(null), 2000)
+          }} className="rounded bg-blue-600 text-white px-4 py-2 focus-ring">저장</button>
+        </div>
       </section>
 
       {recent.length > 0 && (

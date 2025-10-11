@@ -6,6 +6,8 @@ import { ChatCapture } from '../shared/ChatCapture'
 
 export function ActionTwo() {
   const [saved, setSaved] = useState<string | null>(null)
+  const [manualObs, setManualObs] = useState('')
+  const [manualAnalysis, setManualAnalysis] = useState('')
 
   const recent = getSessions('action-2').slice(0, 3)
   function remove(id: string) {
@@ -38,8 +40,36 @@ export function ActionTwo() {
             setSaved('저장되었습니다.')
             setTimeout(() => setSaved(null), 2000)
           }}
+          onJsonChange={(data) => {
+            if (!data) return
+            setManualObs(String(data.observation||''))
+            setManualAnalysis(String(data.analysis||''))
+          }}
         />
         {saved && <div role="status" className="text-green-600 text-sm">{saved}</div>}
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-lg font-semibold">직접 입력(검토/수정 후 저장)</h2>
+        <div>
+          <label htmlFor="m-obs" className="block text-sm font-medium">관찰/기록</label>
+          <textarea id="m-obs" rows={4} value={manualObs} onChange={e => setManualObs(e.target.value)} className="mt-1 w-full rounded border px-3 py-2 focus-ring" />
+        </div>
+        <div>
+          <label htmlFor="m-anl" className="block text-sm font-medium">패턴 분석</label>
+          <textarea id="m-anl" rows={4} value={manualAnalysis} onChange={e => setManualAnalysis(e.target.value)} className="mt-1 w-full rounded border px-3 py-2 focus-ring" />
+        </div>
+        <div>
+          <button onClick={() => {
+            const session: SessionAction2 = {
+              id: generateId(), actionId: 'action-2', createdAt: new Date().toISOString(),
+              observation: manualObs, analysis: manualAnalysis
+            }
+            addSession(session)
+            setSaved('저장되었습니다.')
+            setTimeout(() => setSaved(null), 2000)
+          }} className="rounded bg-blue-600 text-white px-4 py-2 focus-ring">저장</button>
+        </div>
       </section>
 
       {recent.length > 0 && (

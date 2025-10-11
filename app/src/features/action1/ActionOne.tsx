@@ -6,6 +6,9 @@ import { ChatCapture } from '../shared/ChatCapture'
 
 export function ActionOne() {
   const [saved, setSaved] = useState<string | null>(null)
+  const [manualTopic, setManualTopic] = useState('')
+  const [manualCoreQuestion, setManualCoreQuestion] = useState('')
+  const [manualNotes, setManualNotes] = useState('')
 
   // legacy form removed; using ChatCapture
 
@@ -42,8 +45,41 @@ export function ActionOne() {
             setSaved('저장되었습니다.')
             setTimeout(() => setSaved(null), 2000)
           }}
+          onJsonChange={(data) => {
+            if (!data) return
+            setManualTopic(String(data.topic||''))
+            setManualCoreQuestion(String(data.coreQuestion||''))
+            setManualNotes(String(data.notes||''))
+          }}
         />
         {saved && <div role="status" className="text-green-600 text-sm">{saved}</div>}
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-lg font-semibold">직접 입력(검토/수정 후 저장)</h2>
+        <div>
+          <label htmlFor="m-topic" className="block text-sm font-medium">주제</label>
+          <input id="m-topic" value={manualTopic} onChange={e => setManualTopic(e.target.value)} className="mt-1 w-full rounded border px-3 py-2 focus-ring" />
+        </div>
+        <div>
+          <label htmlFor="m-core" className="block text-sm font-medium">핵심 질문</label>
+          <input id="m-core" value={manualCoreQuestion} onChange={e => setManualCoreQuestion(e.target.value)} className="mt-1 w-full rounded border px-3 py-2 focus-ring" />
+        </div>
+        <div>
+          <label htmlFor="m-notes" className="block text-sm font-medium">메모</label>
+          <textarea id="m-notes" rows={5} value={manualNotes} onChange={e => setManualNotes(e.target.value)} className="mt-1 w-full rounded border px-3 py-2 focus-ring" />
+        </div>
+        <div>
+          <button onClick={() => {
+            const session: SessionAction1 = {
+              id: generateId(), actionId: 'action-1', createdAt: new Date().toISOString(),
+              topic: manualTopic, coreQuestion: manualCoreQuestion, notes: manualNotes
+            }
+            addSession(session)
+            setSaved('저장되었습니다.')
+            setTimeout(() => setSaved(null), 2000)
+          }} className="rounded bg-blue-600 text-white px-4 py-2 focus-ring">저장</button>
+        </div>
       </section>
 
       {recent.length > 0 && (

@@ -11,6 +11,7 @@ export interface ChatCaptureProps {
   apiKey: string
   model: string
   onSave: (payload: any) => void
+  onJsonChange?: (payload: any | null) => void
 }
 
 function systemPrompt(action: ActionType) {
@@ -26,7 +27,7 @@ JSON keys: observation, analysis`
 JSON keys: problem, reframes[]`
 }
 
-export function ChatCapture({ action, apiKey, model, onSave }: ChatCaptureProps) {
+export function ChatCapture({ action, apiKey, model, onSave, onJsonChange }: ChatCaptureProps) {
   const [messages, setMessages] = useState<{ role: 'user'|'model', text: string }[]>([])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
@@ -170,6 +171,17 @@ export function ChatCapture({ action, apiKey, model, onSave }: ChatCaptureProps)
     if (error) { setErrors([`JSON 파싱 오류: ${error}`]); return }
     setErrors(validate(action, data))
   }, [jsonText, action])
+
+  // Notify parent with latest parsed JSON if valid
+  useEffect(() => {
+    if (!onJsonChange) return
+    if (!jsonText) { onJsonChange(null); return }
+    const { data, error } = parseJsonSafe(jsonText)
+    if (error) { onJsonChange(null); return }
+    const errs = validate(action, data)
+    if (errs.length === 0) onJsonChange(data)
+    else onJsonChange(null)
+  }, [jsonText, action, onJsonChange, errors])
 
   // Auto-save when valid if enabled
   useEffect(() => {
