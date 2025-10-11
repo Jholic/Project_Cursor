@@ -18,11 +18,24 @@ export function Meditation() {
   const [granted, setGranted] = useState<boolean>(false)
   const [items, setItems] = useState<ScheduledItem[]>([])
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [isNative, setIsNative] = useState<boolean>(false)
 
   useEffect(() => {
     if (!supportsNotifications()) return
     Notification.requestPermission().then(p => setGranted(p === 'granted'))
+    setIsNative(!!(window as any).Capacitor?.isNativePlatform?.())
   }, [])
+
+  // On native, play audio when notification tapped
+  useEffect(() => {
+    if (!isNative) return
+    const LN = (window as any).Capacitor?.Plugins?.LocalNotifications
+    if (!LN?.addListener) return
+    const sub = LN.addListener('localNotificationActionPerformed', () => {
+      play()
+    })
+    return () => { try { sub?.remove?.() } catch {} }
+  }, [isNative, fileUrl])
 
   function scheduleLocal() {
     if (!supportsNotifications()) { alert('브라우저 알림을 지원하지 않습니다.'); return }
@@ -48,16 +61,36 @@ export function Meditation() {
       const title = '명상 시간'
       const item: ScheduledItem = { id: id(), when: at.toISOString(), recurrence, title }
       setItems(prev => [...prev, item])
-      setTimeout(() => {
-        navigator.serviceWorker?.getRegistration().then(reg => {
-          reg?.showNotification(title, { body: '알람을 눌러 재생하세요.' })
-        })
-        if (recurrence === 'daily') {
-          const next = new Date(at)
-          next.setDate(next.getDate() + 1)
-          scheduleOne(next)
+      if (isNative) {
+        // Capacitor LocalNotifications
+        const LN = (window as any).Capacitor?.Plugins?.LocalNotifications
+        if (LN?.schedule) {
+          const idNum = Math.floor(Math.random()*1e6)
+          const opts: any = {
+            notifications: [{
+              id: idNum,
+              title,
+              body: '알림을 눌러 재생됩니다.',
+              schedule: recurrence === 'daily' ? { repeats: true, every: 'day', at } : { at }
+            }]
+          }
+          LN.schedule(opts)
+        } else {
+          alert('LocalNotifications 플러그인이 없습니다. 웹 예약으로 대체합니다.')
         }
-      }, delay)
+      }
+      if (!isNative) {
+        setTimeout(() => {
+          navigator.serviceWorker?.getRegistration().then(reg => {
+            reg?.showNotification(title, { body: '알림을 눌러 재생하세요.' })
+          })
+          if (recurrence === 'daily') {
+            const next = new Date(at)
+            next.setDate(next.getDate() + 1)
+            scheduleOne(next)
+          }
+        }, delay)
+      }
     }
     scheduleOne(target)
     alert(recurrence === 'daily' ? '매일 알림이 예약되었습니다. (브라우저 실행 중에만 동작)' : '알림이 예약되었습니다.')
@@ -138,9 +171,7 @@ export function Meditation() {
         )}
       </section>
 
-      <div className="text-xs text-zinc-600 dark:text-zinc-400">
-        PWA 한계로 브라우저/앱이 백그라운드에서 종료되면 알림이 동작하지 않을 수 있어요. 반복 알람/완전 오프라인 알람은 네이티브 패키징(Capacitor)로 구현을 권장합니다.
-      </div>
+      {/* 안내 문구 제거 요청에 따라 삭제 */}
     </div>
   )
 }
