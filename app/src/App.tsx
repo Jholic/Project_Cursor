@@ -9,6 +9,7 @@ import { Chat } from './features/chat/Chat'
 // ChatWithContext removed per request
 import { SWPrompt } from './components/SWPrompt'
 import { Compose } from './features/history/Compose'
+import { Meditation } from './features/meditation/Meditation'
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="/action-3" element={<ActionThree />} />
           <Route path="/history" element={<History />} />
           <Route path="/compose" element={<Compose />} />
+          <Route path="/meditation" element={<Meditation />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/action-4" element={<ActionFour />} />
           <Route path="*" element={<NotFound />} />
