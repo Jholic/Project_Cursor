@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { loadProfile } from '../../lib/profile'
 import { renderRich } from '../../components/Markdown'
 
 type Step = 'ask' | 'review'
@@ -62,7 +63,9 @@ export function ChatCapture({ action, apiKey, model, onSave, onJsonChange }: Cha
     try {
       const genAI = new GoogleGenerativeAI(apiKey)
       const m = genAI.getGenerativeModel({ model })
-      const result = await m.generateContent(buildPrompt(undefined, true))
+      const prof = loadProfile()
+      const profStr = prof.useInPrompts ? `\n[사용자 프로필]\n이름:${prof.name}\n직함:${prof.title||''}\n전문:${(prof.expertise||[]).join(', ')}\n페르소나:${prof.persona||''}\n목표:${prof.goals||''}\n` : ''
+      const result = await m.generateContent(buildPrompt(undefined, true) + profStr)
       const out = result.response.text()
       setMessages([{ role: 'model', text: out }])
     } catch (e: any) {
@@ -80,7 +83,9 @@ export function ChatCapture({ action, apiKey, model, onSave, onJsonChange }: Cha
     try {
       const genAI = new GoogleGenerativeAI(apiKey)
       const m = genAI.getGenerativeModel({ model })
-      const result = await m.generateContent(buildPrompt(text))
+      const prof = loadProfile()
+      const profStr = prof.useInPrompts ? `\n[사용자 프로필]\n이름:${prof.name}\n직함:${prof.title||''}\n전문:${(prof.expertise||[]).join(', ')}\n페르소나:${prof.persona||''}\n목표:${prof.goals||''}\n` : ''
+      const result = await m.generateContent(buildPrompt(text) + profStr)
       const out = result.response.text()
       setMessages(m => [...m, { role: 'model', text: out }])
       // JSON 추출(마지막 턴 가정)
@@ -200,7 +205,9 @@ export function ChatCapture({ action, apiKey, model, onSave, onJsonChange }: Cha
       : action === 'action-2'
       ? '필수: observation, analysis. 문자열만.'
       : '필수: problem, reframes 배열(최소 3개, 문자열).'
-    const prompt = `다음 액션(${action})의 스키마에 맞도록 누락/형식을 보정한 순수 JSON만 출력하세요. 설명 금지, 마크다운 금지, JSON만.\n제약: ${constraints}\n${hint}`
+    const prof = loadProfile()
+    const profStr = prof.useInPrompts ? `\n[사용자 프로필]\n이름:${prof.name}\n직함:${prof.title||''}\n전문:${(prof.expertise||[]).join(', ')}\n페르소나:${prof.persona||''}\n목표:${prof.goals||''}\n` : ''
+    const prompt = `다음 액션(${action})의 스키마에 맞도록 누락/형식을 보정한 순수 JSON만 출력하세요. 설명 금지, 마크다운 금지, JSON만.\n제약: ${constraints}\n${hint}${profStr}`
     try {
       const genAI = new GoogleGenerativeAI(apiKey)
       const m = genAI.getGenerativeModel({ model })

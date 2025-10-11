@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { loadProfile } from '../../lib/profile'
 import { renderRich } from '../../components/Markdown'
 
 function getApiKey(): string | null {
@@ -41,7 +42,9 @@ export function Chat() {
     try {
       const genAI = new GoogleGenerativeAI(apiKey)
       const m = genAI.getGenerativeModel({ model })
-      const result = await m.generateContent(text)
+      const p = loadProfile()
+      const profilePrefix = p.useInPrompts ? `다음은 사용자의 프로필입니다. 답변 시 톤/전문성을 반영하세요.\n이름:${p.name}\n직함:${p.title||''}\n전문:${(p.expertise||[]).join(', ')}\n페르소나:${p.persona||''}\n목표:${p.goals||''}\n` : ''
+      const result = await m.generateContent(profilePrefix + text)
       const out = result.response.text()
       setMessages(m => [...m, { role: 'model', text: out }])
     } catch (e: any) {
