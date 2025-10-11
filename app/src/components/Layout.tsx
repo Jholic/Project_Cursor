@@ -41,7 +41,6 @@ export function Layout({ children }: LayoutProps) {
           <div className="mt-4" />
           <NavItem to="/action-4" icon={<span className="text-xs font-mono">WT</span>} label="Action 4: 체중 기록" />
           <NavItem to="/chat" icon={<MessageSquare size={18} />} label="챗봇" />
-          <NavItem to="/chat/context" icon={<MessageSquare size={18} />} label="챗봇(기록 반영)" />
         </nav>
       </aside>
       <main id="main" className="min-h-dvh bg-zinc-50 dark:bg-zinc-950">

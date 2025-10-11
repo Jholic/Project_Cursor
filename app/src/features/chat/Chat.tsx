@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { renderRich } from '../../components/Markdown'
 
 function getApiKey(): string | null {
   try { return localStorage.getItem('GEMINI_API_KEY') } catch { return null }
@@ -79,9 +80,7 @@ export function Chat() {
       <div ref={scroller} className="h-[50vh] overflow-auto rounded border p-3 bg-white dark:bg-zinc-900">
         {messages.map((m, i) => (
           <div key={i} className={m.role === 'user' ? 'text-right' : 'text-left'}>
-            <div className={`inline-block rounded px-3 py-2 my-1 ${m.role === 'user' ? 'bg-blue-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800'}`}>
-              {m.text}
-            </div>
+            <div className={`inline-block rounded px-3 py-2 my-1 text-left max-w-full break-words ${m.role === 'user' ? 'bg-blue-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800'}`}>{renderRich(m.text)}</div>
           </div>
         ))}
       </div>

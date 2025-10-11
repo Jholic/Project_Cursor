@@ -6,7 +6,7 @@ import { ActionThree } from './features/action3/ActionThree'
 import { History } from './features/history/History'
 import { ActionFour } from './features/action4/ActionFour'
 import { Chat } from './features/chat/Chat'
-import { ChatWithContext } from './features/chat/ChatWithContext'
+// ChatWithContext removed per request
 import { SWPrompt } from './components/SWPrompt'
 
 function App() {
@@ -21,7 +21,6 @@ function App() {
           <Route path="/action-3" element={<ActionThree />} />
           <Route path="/history" element={<History />} />
           <Route path="/chat" element={<Chat />} />
-          <Route path="/chat/context" element={<ChatWithContext />} />
           <Route path="/action-4" element={<ActionFour />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
