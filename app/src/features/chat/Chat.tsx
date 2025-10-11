@@ -8,6 +8,9 @@ function getApiKey(): string | null {
 export function Chat() {
   const [apiKey, setApiKey] = useState<string | ''>(getApiKey() || '')
   const [input, setInput] = useState('')
+  const [model, setModel] = useState<string>(() => {
+    try { return localStorage.getItem('GEMINI_MODEL') || 'gemini-2.5-flash' } catch { return 'gemini-2.5-flash' }
+  })
   const [messages, setMessages] = useState<{ role: 'user'|'model', text: string }[]>([])
   const [busy, setBusy] = useState(false)
   const scroller = useRef<HTMLDivElement | null>(null)
@@ -18,6 +21,10 @@ export function Chat() {
       else localStorage.removeItem('GEMINI_API_KEY')
     } catch {}
   }, [apiKey])
+
+  useEffect(() => {
+    try { localStorage.setItem('GEMINI_MODEL', model) } catch {}
+  }, [model])
 
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight })
@@ -32,8 +39,8 @@ export function Chat() {
     setBusy(true)
     try {
       const genAI = new GoogleGenerativeAI(apiKey)
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
-      const result = await model.generateContent(text)
+      const m = genAI.getGenerativeModel({ model })
+      const result = await m.generateContent(text)
       const out = result.response.text()
       setMessages(m => [...m, { role: 'model', text: out }])
     } catch (e: any) {
@@ -50,12 +57,19 @@ export function Chat() {
         <p className="text-sm text-zinc-600 dark:text-zinc-400">Google Generative AI API Key가 필요합니다. (키는 로컬에 저장됨)</p>
       </header>
 
-      <div className="grid gap-3 sm:grid-cols-[1fr_auto] items-end">
+      <div className="grid gap-3 sm:grid-cols-[1fr_200px_auto] items-end">
         <div>
           <label htmlFor="key" className="block text-sm font-medium">API Key</label>
           <input id="key" type="password" value={apiKey} onChange={e => setApiKey(e.target.value)}
             placeholder="AIza..."
             className="mt-1 w-full rounded border px-3 py-2 focus-ring"/>
+        </div>
+        <div>
+          <label htmlFor="model" className="block text-sm font-medium">모델</label>
+          <select id="model" value={model} onChange={e => setModel(e.target.value)} className="mt-1 w-full rounded border px-3 py-2 focus-ring">
+            <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+            <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+          </select>
         </div>
         <div className="pt-6 sm:pt-0">
           <button onClick={() => setApiKey('')} className="rounded border px-3 py-2 text-sm focus-ring">키 삭제</button>

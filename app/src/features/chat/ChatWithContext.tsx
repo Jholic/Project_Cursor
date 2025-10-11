@@ -11,6 +11,9 @@ export function ChatWithContext() {
   const [apiKey, setApiKey] = useState<string | ''>(getApiKey() || '')
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
+  const [model, setModel] = useState<string>(() => {
+    try { return localStorage.getItem('GEMINI_MODEL') || 'gemini-2.5-flash' } catch { return 'gemini-2.5-flash' }
+  })
   const [selectedId, setSelectedId] = useState<string>('')
   const [messages, setMessages] = useState<{ role: 'user'|'model', text: string }[]>([])
   const sessions = useMemo<Session[]>(() => getSessions(), [])
@@ -18,6 +21,7 @@ export function ChatWithContext() {
 
   useEffect(() => { scroller.current?.scrollTo({ top: scroller.current.scrollHeight }) }, [messages])
   useEffect(() => { try { apiKey ? localStorage.setItem('GEMINI_API_KEY', apiKey) : localStorage.removeItem('GEMINI_API_KEY') } catch {} }, [apiKey])
+  useEffect(() => { try { localStorage.setItem('GEMINI_MODEL', model) } catch {} }, [model])
 
   const selected = useMemo(() => sessions.find(s => s.id === selectedId), [sessions, selectedId])
 
@@ -45,9 +49,9 @@ export function ChatWithContext() {
     setMessages(m => [...m, { role: 'user', text }])
     try {
       const genAI = new GoogleGenerativeAI(apiKey)
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+      const m = genAI.getGenerativeModel({ model })
       const prompt = `다음 사용자의 기존 기록을 더 명확하고 간결하게 다듬어 주세요. 필요하면 구조화해서 제안하세요.\n\n[현재 기록]\n${systemContextOf(selected)}\n\n[사용자 요청]\n${text}`
-      const result = await model.generateContent(prompt)
+      const result = await m.generateContent(prompt)
       const out = result.response.text()
       setMessages(m => [...m, { role: 'model', text: out }])
     } catch (e: any) {
@@ -81,10 +85,17 @@ export function ChatWithContext() {
         <h1 className="text-2xl font-bold">기록 기반 챗봇</h1>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">기존 기록을 선택하고, 챗봇과 대화하며 다듬은 결과를 기록에 반영하세요.</p>
       </header>
-      <div className="grid gap-3 sm:grid-cols-[1fr_auto] items-end">
+      <div className="grid gap-3 sm:grid-cols-[1fr_200px_auto] items-end">
         <div>
           <label htmlFor="key" className="block text-sm font-medium">API Key</label>
           <input id="key" type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} className="mt-1 w-full rounded border px-3 py-2 focus-ring"/>
+        </div>
+        <div>
+          <label htmlFor="model" className="block text-sm font-medium">모델</label>
+          <select id="model" value={model} onChange={e => setModel(e.target.value)} className="mt-1 w-full rounded border px-3 py-2 focus-ring">
+            <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+            <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+          </select>
         </div>
       </div>
 
