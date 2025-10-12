@@ -6,11 +6,16 @@ import { ActionThree } from './features/action3/ActionThree'
 import { History } from './features/history/History'
 import { ActionFour } from './features/action4/ActionFour'
 import { Chat } from './features/chat/Chat'
-import { ChatWithContext } from './features/chat/ChatWithContext'
+// ChatWithContext removed per request
+import { SWPrompt } from './components/SWPrompt'
+import { Compose } from './features/history/Compose'
+import { Meditation } from './features/meditation/Meditation'
+import { Profile } from './features/profile/Profile'
 
 function App() {
   return (
     <BrowserRouter>
+      <SWPrompt />
       <Layout>
         <Routes>
           <Route path="/" element={<ActionOne />} />
@@ -18,8 +23,10 @@ function App() {
           <Route path="/action-2" element={<ActionTwo />} />
           <Route path="/action-3" element={<ActionThree />} />
           <Route path="/history" element={<History />} />
+          <Route path="/compose" element={<Compose />} />
+          <Route path="/meditation" element={<Meditation />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/chat" element={<Chat />} />
-          <Route path="/chat/context" element={<ChatWithContext />} />
           <Route path="/action-4" element={<ActionFour />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

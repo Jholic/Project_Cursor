@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { NavLink, Link } from 'react-router-dom'
-import { History as HistoryIcon, NotebookPen, Scale, Lightbulb, MessageSquare } from 'lucide-react'
+import { History as HistoryIcon, NotebookPen, Scale, Lightbulb, MessageSquare, Bell } from 'lucide-react'
 
 type LayoutProps = { children: ReactNode }
 
@@ -32,16 +32,18 @@ export function Layout({ children }: LayoutProps) {
             {isDark ? '라이트' : '다크'} 모드
           </button>
         </div>
-        <nav aria-label="주요 작업" className="px-2 pb-4">
-          <NavItem to="/action-1" icon={<NotebookPen size={18} />} label="Action 1: 지식 아카이브" />
-          <NavItem to="/action-2" icon={<Scale size={18} />} label="Action 2: 가정 운영" />
-          <NavItem to="/action-3" icon={<Lightbulb size={18} />} label="Action 3: 소셜 벤처" />
+        <nav aria-label="주요 작업" className="px-2 pb-4 space-y-1">
+          <div className="px-3 text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">생각 정리</div>
+          <NavItem to="/action-1" icon={<NotebookPen size={18} />} label="지식 아카이브" />
+          <NavItem to="/action-2" icon={<Scale size={18} />} label="행복한 가정" />
+          <NavItem to="/action-3" icon={<Lightbulb size={18} />} label="소셜 벤처" />
           <div className="mt-4 border-t border-zinc-200 dark:border-zinc-800 pt-2" />
+          <div className="px-3 text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">기록</div>
           <NavItem to="/history" icon={<HistoryIcon size={18} />} label="히스토리" />
-          <div className="mt-4" />
-          <NavItem to="/action-4" icon={<span className="text-xs font-mono">WT</span>} label="Action 4: 체중 기록" />
+          <NavItem to="/action-4" icon={<span className="text-xs font-mono">WT</span>} label="체중 기록" />
           <NavItem to="/chat" icon={<MessageSquare size={18} />} label="챗봇" />
-          <NavItem to="/chat/context" icon={<MessageSquare size={18} />} label="챗봇(기록 반영)" />
+          <NavItem to="/meditation" icon={<Bell size={18} />} label="명상" />
+          <NavItem to="/profile" icon={<span className="text-xs font-mono">PR</span>} label="프로필" />
         </nav>
       </aside>
       <main id="main" className="min-h-dvh bg-zinc-50 dark:bg-zinc-950">

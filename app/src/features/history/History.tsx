@@ -1,16 +1,19 @@
 import { useMemo, useRef, useState } from 'react'
 import { exportState, importState, getSessions, clearAll, deleteSessionById } from '../../lib/storage'
 import type { ActionId, Session } from '../../lib/types'
+import { Link } from 'react-router-dom'
 
 export function History() {
   const [filter, setFilter] = useState<ActionId | 'all'>('all')
+  const [activeTab, setActiveTab] = useState<ActionId | 'all'>('all')
   const [message, setMessage] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement | null>(null)
 
   const sessions = useMemo(() => {
     const all = getSessions()
-    return filter === 'all' ? all : all.filter(s => s.actionId === filter)
-  }, [filter])
+    const f = activeTab === 'all' ? filter : activeTab
+    return f === 'all' ? all : all.filter(s => s.actionId === f)
+  }, [filter, activeTab])
 
   function remove(id: string) {
     if (!confirm('이 기록을 삭제할까요?')) return
@@ -71,27 +74,41 @@ export function History() {
             <option value="action-1">Action 1</option>
             <option value="action-2">Action 2</option>
             <option value="action-3">Action 3</option>
+            <option value="action-4">Action 4</option>
           </select>
           <button onClick={handleExport} className="rounded border px-3 py-2 focus-ring">내보내기</button>
           <label className="rounded border px-3 py-2 focus-ring cursor-pointer" htmlFor="import">가져오기</label>
           <input id="import" ref={fileRef} type="file" accept="application/json" onChange={handleImport} className="sr-only" />
           <button onClick={handleClear} className="rounded border border-red-300 text-red-700 px-3 py-2 focus-ring">전체 삭제</button>
+          <Link to="/compose" className="rounded bg-blue-600 text-white px-3 py-2 focus-ring">집필하기</Link>
         </div>
       </header>
+
+      {/* Action tabs */}
+      <div role="tablist" aria-label="액션 탭" className="flex gap-2 border-b pb-2">
+        {['all','action-1','action-2','action-3','action-4'].map((t) => (
+          <button key={t}
+            role="tab"
+            aria-selected={activeTab===t}
+            onClick={()=>setActiveTab(t as any)}
+            className={`px-3 py-1.5 rounded-t ${activeTab===t?'bg-zinc-200 dark:bg-zinc-800 font-medium':'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+          >{t}</button>
+        ))}
+      </div>
 
       {message && <div role="status" className="text-sm text-green-600">{message}</div>}
 
       <section aria-labelledby="history-list" className="space-y-2">
         <h2 id="history-list" className="text-lg font-semibold">세션 목록 ({sessions.length})</h2>
-        <ul className="divide-y divide-zinc-200 dark:divide-zinc-800 rounded border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+        <ul className="grid gap-3 sm:grid-cols-2">
           {sessions.map((s) => (
-            <li key={s.id} className="p-3 grid grid-cols-1 sm:grid-cols-[160px_1fr_auto] gap-2">
-              <div className="text-xs text-zinc-600 dark:text-zinc-400">
-                <div>{new Date(s.createdAt).toLocaleString()}</div>
-                <div>{s.actionId}</div>
+            <li key={s.id} className="rounded border p-3 flex flex-col gap-2">
+              <div className="text-xs text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
+                <span>{new Date(s.createdAt).toLocaleString()}</span>
+                <span className="px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800">{s.actionId}</span>
               </div>
               <SessionPreview session={s} />
-              <div className="flex items-start justify-end">
+              <div className="flex items-center justify-end gap-2">
                 <button onClick={() => remove(s.id)} className="rounded border border-red-300 text-red-700 px-2 py-1 text-xs focus-ring">삭제</button>
               </div>
             </li>
