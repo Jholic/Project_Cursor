@@ -1,0 +1,14 @@
+# Android SDK 경로 설정 예시
+# 이 파일을 local.properties로 복사하고 실제 경로를 입력하세요
+#
+# Windows 예시:
+# sdk.dir=C:\\Users\\YourName\\AppData\\Local\\Android\\Sdk
+#
+# macOS 예시:
+# sdk.dir=/Users/YourName/Library/Android/sdk
+#
+# Linux 예시:
+# sdk.dir=/home/YourName/Android/Sdk
+
+sdk.dir=C:\\Users\\admin\\AppData\\Local\\Android\\Sdk
+
